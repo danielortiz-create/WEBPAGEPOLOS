@@ -1,0 +1,114 @@
+{
+  "productos": [
+    {
+      "id": 1,
+      "nombre": "Polo Dodgers \"Pride of LA\"",
+      "descripcion": "Polo de algodón premium con el icónico gráfico vintage \"Pride of Los Angeles\" de los Dodgers. Corte unisex relaxed fit, tela 100% algodón peinado 185 gsm. Inspirado en el estilo deportivo de Nueva York.",
+      "precio": 45,
+      "categoria": "Béisbol",
+      "tallas": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "stock": 20,
+      "imagen": "/img/dodgers-front.webp",
+      "imagenes": [
+        "/img/dodgers-front.webp",
+        "/img/dodgers-back.webp"
+      ],
+      "color": "Crema / Off-White",
+      "activo": true,
+      "creado_en": "2026-06-30T15:55:24.577Z"
+    },
+    {
+      "id": 2,
+      "nombre": "Polo LA Dodgers \"Cap Logo\"",
+      "descripcion": "Polo con el inconfundible gráfico de la gorra LA Dodgers en el pecho y el diseño completo en la espalda. Calidad premium, corte moderno. La pieza perfecta para el fanático auténtico.",
+      "precio": 45,
+      "categoria": "Béisbol",
+      "tallas": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "stock": 15,
+      "imagen": "/img/la-front.webp",
+      "imagenes": [
+        "/img/la-front.webp",
+        "/img/la-combo.webp",
+        "/img/la-detail.webp"
+      ],
+      "color": "Blanco / White",
+      "activo": true,
+      "creado_en": "2026-06-30T15:55:24.577Z"
+    },
+    {
+      "id": 3,
+      "nombre": "RIVT",
+      "descripcion": "",
+      "precio": 34.5,
+      "categoria": "General",
+      "tallas": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "stock": 10,
+      "imagen": "/img/producto-1782846759792.png",
+      "imagenes": [
+        "/img/producto-1782846752425.png",
+        "/img/producto-1782847055876.png",
+        "/img/producto-1782847595333.png"
+      ],
+      "color": "",
+      "activo": true,
+      "creado_en": "2026-06-30T19:12:47.640Z"
+    }
+  ],
+  "pedidos": [
+    {
+      "id": "cd218714-493d-47af-9584-4dbd3a0cf24f",
+      "cliente": {
+        "nombre": "Daniel",
+        "apellido": "Ortiz Vargas",
+        "email": "Danielortizvargas21@gmail.com",
+        "telefono": "+51912304036"
+      },
+      "items": [
+        {
+          "id": 2,
+          "nombre": "Polo LA Dodgers \"Cap Logo\"",
+          "talla": "S",
+          "cantidad": 1,
+          "precio": 45
+        }
+      ],
+      "total": 45,
+      "estado": "pendiente",
+      "metodo_pago": "whatsapp",
+      "pago_id": null,
+      "direccion": {
+        "direccion": "Calle los libertadores 273, San isidro",
+        "distrito": "san isidro ",
+        "ciudad": "Lima"
+      },
+      "notas": "",
+      "creado_en": "2026-06-30T17:24:17.516Z"
+    }
+  ],
+  "admins": [
+    {
+      "id": 1,
+      "usuario": "admin",
+      "password_hash": "$2a$10$AjfYdDEJR7sJx100bcaZTeBLSjITfizO289KfVwWCxMJ7S/UQzTpO",
+      "creado_en": "2026-06-30T15:55:24.575Z"
+    }
+  ],
+  "_meta": {
+    "nextProductId": 4
+  }
+}

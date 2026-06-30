@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:4000/api/health\")",
+      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:4000/api/productos\")",
+      "PowerShell(Test-NetConnection -ComputerName localhost -Port 4000 -InformationLevel Quiet -WarningAction SilentlyContinue)",
+      "PowerShell(Test-NetConnection -ComputerName localhost -Port 3000 -InformationLevel Quiet -WarningAction SilentlyContinue)"
+    ]
+  }
+}

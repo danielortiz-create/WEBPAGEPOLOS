@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rivt-store",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "C:\\Users\\danie\\Documents\\21_Polos\\start-dev.bat"],
+      "port": 3000,
+      "autoPort": false
+    }
+  ]
+}

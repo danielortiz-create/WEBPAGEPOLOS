@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  * {
+    @apply box-border;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-ink text-cream font-sans font-medium tracking-widest uppercase text-xs px-8 py-4 transition-all duration-300 hover:bg-ink-light active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply border border-ink text-ink font-sans font-medium tracking-widest uppercase text-xs px-8 py-4 transition-all duration-300 hover:bg-ink hover:text-cream active:scale-95;
+  }
+
+  .input-field {
+    @apply w-full border border-cream-darker bg-transparent py-3 px-4 text-sm font-sans text-ink placeholder:text-ink-muted focus:outline-none focus:border-ink transition-colors duration-200;
+  }
+
+  .product-grid {
+    @apply grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6;
+  }
+
+  .section-title {
+    @apply font-serif text-3xl md:text-4xl font-normal tracking-tight text-ink;
+  }
+
+  .label-tag {
+    @apply font-sans text-xs font-medium tracking-widest uppercase text-ink-muted;
+  }
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #F5F3EC;
+}
+::-webkit-scrollbar-thumb {
+  background: #1A1A1A;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.animate-slideInRight {
+  animation: slideInRight 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
