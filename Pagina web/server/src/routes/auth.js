@@ -1,19 +1,20 @@
 const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const db = require('../database')
+const Admin = require('../models/Admin')
+const asyncHandler = require('../middleware/asyncHandler')
 
 const router = express.Router()
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { usuario, password } = req.body
 
   if (!usuario || !password) {
     return res.status(400).json({ error: 'Usuario y contraseña requeridos' })
   }
 
-  const admin = db.get('admins').find({ usuario }).value()
+  const admin = await Admin.findOne({ usuario })
 
   if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
     return res.status(401).json({ error: 'Credenciales incorrectas' })
@@ -26,7 +27,7 @@ router.post('/login', (req, res) => {
   )
 
   res.json({ token, usuario: admin.usuario })
-})
+}))
 
 // GET /api/auth/me — verifica token activo
 router.get('/me', (req, res) => {

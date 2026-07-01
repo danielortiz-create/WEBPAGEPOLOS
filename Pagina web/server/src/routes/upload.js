@@ -1,29 +1,20 @@
 const express = require('express')
 const multer = require('multer')
 const path = require('path')
-const fs = require('fs')
+const { v2: cloudinary } = require('cloudinary')
 const { requireAuth } = require('../middleware/auth')
 
 const router = express.Router()
 
-// Guardar imágenes en client/public/img (accesibles directamente por Vite)
-const UPLOAD_DIR = path.resolve(__dirname, '../../../client/public/img')
+// Lee CLOUDINARY_URL del entorno (cloudinary://KEY:SECRET@CLOUD_NAME)
+cloudinary.config()
 
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+function cloudinaryConfigurado() {
+  return Boolean(process.env.CLOUDINARY_URL || process.env.CLOUDINARY_API_SECRET)
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase()
-    const name = `producto-${Date.now()}${ext}`
-    cb(null, name)
-  },
-})
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.avif']
@@ -36,13 +27,35 @@ const upload = multer({
   },
 })
 
+function subirACloudinary(buffer) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'rivt-productos', resource_type: 'image' },
+      (err, result) => (err ? reject(err) : resolve(result))
+    )
+    stream.end(buffer)
+  })
+}
+
 // POST /api/upload — subir imagen (admin)
-router.post('/', requireAuth, upload.single('imagen'), (req, res) => {
+router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No se recibió ninguna imagen' })
   }
-  const url = `/img/${req.file.filename}`
-  res.json({ url, filename: req.file.filename })
+  if (!cloudinaryConfigurado()) {
+    return res.status(503).json({
+      error: 'Almacenamiento de imágenes no configurado. Agrega CLOUDINARY_URL en server/.env',
+      configurar: true,
+    })
+  }
+
+  try {
+    const result = await subirACloudinary(req.file.buffer)
+    res.json({ url: result.secure_url, filename: result.public_id })
+  } catch (err) {
+    console.error('Error Cloudinary:', err.message)
+    res.status(500).json({ error: 'Error al subir la imagen' })
+  }
 })
 
 router.use((err, req, res, next) => {

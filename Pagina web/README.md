@@ -64,22 +64,42 @@ Pagina web/
 ### server/.env
 ```env
 PORT=4000
-DATABASE_URL=./db.json
 JWT_SECRET=cambia_este_secreto_largo_y_aleatorio
 
 # Credenciales del admin
 ADMIN_USER=admin
 ADMIN_PASSWORD=rivt2025        ← CÁMBIALO en producción
 
-# Culqi (Fase 3) — https://culqi.com/developers
-CULQI_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxx
-CULQI_PUBLIC_KEY=pk_live_xxxxxxxxxxxxxxxx
+# MongoDB Atlas (obligatoria — el servidor no arranca sin ella)
+MONGODB_URI=mongodb+srv://usuario:clave@cluster0.xxxxx.mongodb.net/rivt?retryWrites=true&w=majority
+
+# MercadoPago (TEST- para pruebas, APP_USR- para producción)
+MP_PUBLIC_KEY=TEST-xxxxxxxx
+MP_ACCESS_TOKEN=TEST-xxxxxxxx
+
+# Cloudinary (almacenamiento de imágenes)
+CLOUDINARY_URL=cloudinary://KEY:SECRET@CLOUD_NAME
 ```
 
-### client/.env (crear este archivo)
-```env
-VITE_CULQI_PUBLIC_KEY=pk_live_xxxxxxxxxxxxxxxx
-```
+El cliente ya no necesita archivo `.env` — la public key de MercadoPago se sirve desde el backend.
+
+### Crear las cuentas (todas gratis)
+
+**MongoDB Atlas** (base de datos):
+1. Cuenta en [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas/register) → cluster **M0 Free** (AWS, São Paulo)
+2. Database Access → crear usuario con contraseña
+3. Network Access → "Allow access from anywhere" (0.0.0.0/0) — Railway no tiene IP fija
+4. Connect → Drivers → copiar la URI y agregar `/rivt` antes del `?`
+
+**Cloudinary** (imágenes):
+1. Cuenta en [cloudinary.com](https://cloudinary.com) → Dashboard
+2. Copiar la "API Environment variable" completa (`cloudinary://...`)
+
+**MercadoPago** (pagos):
+1. Cuenta vendedor en [mercadopago.com.pe](https://www.mercadopago.com.pe)
+2. [Panel developers](https://www.mercadopago.com.pe/developers) → Tus integraciones → Crear aplicación
+3. Copiar **Public Key** y **Access Token** (primero las de prueba `TEST-`)
+4. Webhooks → agregar URL `https://TU-DOMINIO/api/pagos/mp/webhook` → evento "Pagos"
 
 ---
 
@@ -99,17 +119,19 @@ URL: http://localhost:3000/admin
 
 ---
 
-## Pago online (Fase 3 — Culqi)
+## Pago online (MercadoPago)
 
-1. Crea una cuenta en [culqi.com](https://culqi.com)
-2. Obtén tus llaves en el Dashboard de Culqi
-3. Completa `server/.env` con `CULQI_SECRET_KEY` y `CULQI_PUBLIC_KEY`
-4. Crea `client/.env` con `VITE_CULQI_PUBLIC_KEY`
-5. Reinicia ambos servidores
+El checkout usa **Payment Brick** de MercadoPago embebido en la web. Con las
+variables `MP_PUBLIC_KEY` y `MP_ACCESS_TOKEN` configuradas, el cliente paga sin
+salir de la tienda. Sin configurar, el checkout ofrece solo WhatsApp.
 
 **Soporta:**
 - Tarjeta de crédito/débito (Visa, Mastercard, Amex)
-- Yape (vía token Culqi)
+- Yape (aparece automáticamente cuando la cuenta MP lo tiene habilitado)
+
+**Tarjetas de prueba** (con credenciales `TEST-`): Mastercard `5031 7557 3453 0604`,
+Visa `4009 1753 3280 6176` — CVV `123`, cualquier fecha futura. El nombre del
+titular controla el resultado: `APRO` aprueba, `OTHE` rechaza, `CONT` queda pendiente.
 
 ---
 
@@ -134,9 +156,10 @@ Para agregar imágenes: coloca los `.webp` o `.jpg` en `client/public/img/` y us
 | GET | `/api/pedidos` | Listar pedidos (admin) |
 | PATCH | `/api/pedidos/:id/estado` | Cambiar estado pedido (admin) |
 | POST | `/api/auth/login` | Login admin |
-| POST | `/api/upload` | Subir imagen (admin) |
-| POST | `/api/pagos/culqi` | Pagar con tarjeta |
-| POST | `/api/pagos/yape` | Pagar con Yape |
+| POST | `/api/upload` | Subir imagen a Cloudinary (admin) |
+| GET | `/api/pagos/mp/config` | Public key de MercadoPago |
+| POST | `/api/pagos/mp/procesar` | Procesar pago (Payment Brick) |
+| POST | `/api/pagos/mp/webhook` | Webhook de MercadoPago |
 | GET | `/api/health` | Health check |
 
 ---
@@ -154,8 +177,8 @@ Para cambiar el número, reemplaza `51912304036` en todo el proyecto.
 |------|-----------|
 | Frontend | React 18 + Vite 5 + Tailwind CSS 3 + React Router 6 |
 | Backend | Node.js + Express 4 |
-| Base de datos | lowdb 1 (JSON file — sin instalación de drivers) |
+| Base de datos | MongoDB Atlas (Mongoose) |
 | Autenticación | JWT (jsonwebtoken + bcryptjs) |
-| Subida de archivos | Multer |
-| Pasarela de pago | Culqi (tarjeta + Yape) |
+| Imágenes | Cloudinary (multer en memoria + upload_stream) |
+| Pasarela de pago | MercadoPago Payment Brick (tarjeta + Yape) |
 | Tipografía | Playfair Display + Inter (Google Fonts) |

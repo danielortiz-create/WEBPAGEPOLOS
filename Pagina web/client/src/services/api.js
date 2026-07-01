@@ -72,8 +72,8 @@ export async function uploadImagen(file) {
   return data
 }
 
-// ── Pagos ─────────────────────────────────────────────────────
+// ── Pagos (MercadoPago) ───────────────────────────────────────
 export const pagosAPI = {
-  culqi: (data) => request('POST', '/pagos/culqi', data),
-  yape: (data) => request('POST', '/pagos/yape', data),
+  config: () => request('GET', '/pagos/mp/config'),
+  procesar: (data) => request('POST', '/pagos/mp/procesar', data),
 }

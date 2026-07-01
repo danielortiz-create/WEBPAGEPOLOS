@@ -1,116 +1,96 @@
 const express = require('express')
-const https = require('https')
-const db = require('../database')
+const crypto = require('crypto')
+const { MercadoPagoConfig, Payment } = require('mercadopago')
+const Pedido = require('../models/Pedido')
+const asyncHandler = require('../middleware/asyncHandler')
 
 const router = express.Router()
 
-// POST /api/pagos/culqi — cargo con tarjeta
-router.post('/culqi', async (req, res) => {
-  const { token, pedido_id, email, monto } = req.body
-
-  if (!token || !pedido_id || !email || !monto) {
-    return res.status(400).json({ error: 'Faltan datos: token, pedido_id, email, monto' })
-  }
-
-  const secretKey = process.env.CULQI_SECRET_KEY
-  if (!secretKey || secretKey.includes('xxxxxxxxx')) {
-    return res.status(503).json({
-      error: 'Pasarela de pago no configurada. Agrega CULQI_SECRET_KEY en server/.env',
-      configurar: true,
-    })
-  }
-
-  try {
-    const chargeData = JSON.stringify({
-      amount: Math.round(Number(monto) * 100),
-      currency_code: 'PEN',
-      email,
-      source_id: token,
-      description: `Pedido RIVT #${pedido_id}`,
-      metadata: { pedido_id },
-    })
-
-    const charge = await culqiPost('/charges', chargeData, secretKey)
-
-    if (charge.object === 'error') {
-      return res.status(400).json({ error: charge.user_message || 'Pago rechazado' })
-    }
-
-    db.get('pedidos').find({ id: pedido_id })
-      .assign({ estado: 'pagado', pago_id: charge.id }).write()
-
-    res.json({ ok: true, charge_id: charge.id })
-  } catch (err) {
-    console.error('Culqi error:', err.message)
-    res.status(500).json({ error: 'Error al procesar el pago' })
-  }
-})
-
-// POST /api/pagos/yape — cargo con Yape (token Culqi)
-router.post('/yape', async (req, res) => {
-  const { yape_token, pedido_id, monto } = req.body
-
-  if (!yape_token || !pedido_id || !monto) {
-    return res.status(400).json({ error: 'Faltan datos: yape_token, pedido_id, monto' })
-  }
-
-  const secretKey = process.env.CULQI_SECRET_KEY
-  if (!secretKey || secretKey.includes('xxxxxxxxx')) {
-    return res.status(503).json({
-      error: 'Pasarela de pago no configurada. Agrega CULQI_SECRET_KEY en server/.env',
-      configurar: true,
-    })
-  }
-
-  try {
-    const chargeData = JSON.stringify({
-      amount: Math.round(Number(monto) * 100),
-      currency_code: 'PEN',
-      source_id: yape_token,
-      description: `Pedido RIVT Yape #${pedido_id}`,
-      metadata: { pedido_id, metodo: 'yape' },
-    })
-
-    const charge = await culqiPost('/charges', chargeData, secretKey)
-
-    if (charge.object === 'error') {
-      return res.status(400).json({ error: charge.user_message || 'Pago Yape rechazado' })
-    }
-
-    db.get('pedidos').find({ id: pedido_id })
-      .assign({ estado: 'pagado', pago_id: charge.id }).write()
-
-    res.json({ ok: true, charge_id: charge.id })
-  } catch (err) {
-    console.error('Yape error:', err.message)
-    res.status(500).json({ error: 'Error al procesar el pago Yape' })
-  }
-})
-
-function culqiPost(endpoint, body, secretKey) {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'api.culqi.com',
-      path: `/v2${endpoint}`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${secretKey}`,
-        'Content-Length': Buffer.byteLength(body),
-      },
-    }
-    const req = https.request(options, (resp) => {
-      let data = ''
-      resp.on('data', (c) => { data += c })
-      resp.on('end', () => {
-        try { resolve(JSON.parse(data)) }
-        catch { reject(new Error('Respuesta inválida de Culqi')) }
-      })
-    })
-    req.on('error', reject)
-    req.write(body)
-    req.end()
-  })
+function mpConfigurado() {
+  return Boolean(process.env.MP_ACCESS_TOKEN && process.env.MP_PUBLIC_KEY)
 }
+
+function mpClient() {
+  return new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN })
+}
+
+// GET /api/pagos/mp/config — public key para inicializar el Brick en el frontend
+router.get('/mp/config', (req, res) => {
+  if (!mpConfigurado()) {
+    return res.status(503).json({ error: 'Pasarela de pago no configurada', configurar: true })
+  }
+  res.json({ publicKey: process.env.MP_PUBLIC_KEY })
+})
+
+// POST /api/pagos/mp/procesar — procesa el pago con los datos del Payment Brick
+router.post('/mp/procesar', asyncHandler(async (req, res) => {
+  const { pedido_id, formData } = req.body
+
+  if (!mpConfigurado()) {
+    return res.status(503).json({ error: 'Pasarela de pago no configurada', configurar: true })
+  }
+  if (!pedido_id || !formData) {
+    return res.status(400).json({ error: 'Faltan datos del pago' })
+  }
+
+  const pedido = await Pedido.findOne({ id: pedido_id })
+  if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' })
+
+  try {
+    const payment = await new Payment(mpClient()).create({
+      body: {
+        ...formData,
+        // El monto SIEMPRE sale de la base de datos, nunca del cliente
+        transaction_amount: Number(pedido.total),
+        description: `Pedido RIVT #${pedido_id}`,
+        external_reference: pedido_id,
+      },
+      requestOptions: { idempotencyKey: crypto.randomUUID() },
+    })
+
+    if (payment.status === 'approved') {
+      await Pedido.findOneAndUpdate(
+        { id: pedido_id },
+        { $set: { estado: 'pagado', pago_id: String(payment.id), metodo_pago: payment.payment_method_id || 'tarjeta' } }
+      )
+    }
+
+    res.json({
+      status: payment.status,
+      status_detail: payment.status_detail,
+      payment_id: payment.id,
+    })
+  } catch (err) {
+    console.error('Error MercadoPago:', err.message)
+    const detalle = err?.cause?.[0]?.description || err.message || 'Pago rechazado'
+    res.status(400).json({ error: detalle })
+  }
+}))
+
+// POST /api/pagos/mp/webhook — notificaciones asincrónicas de MercadoPago
+// Responde 200 de inmediato (MP reintenta y marca la integración como
+// fallida si no). El estado se valida re-consultando la API de MP con
+// nuestro access token — la fuente de verdad no puede falsificarse.
+router.post('/mp/webhook', (req, res) => {
+  res.sendStatus(200)
+
+  ;(async () => {
+    try {
+      if (req.body?.type !== 'payment' || !req.body?.data?.id) return
+      if (!process.env.MP_ACCESS_TOKEN) return
+
+      const payment = await new Payment(mpClient()).get({ id: req.body.data.id })
+
+      if (payment.status === 'approved' && payment.external_reference) {
+        await Pedido.findOneAndUpdate(
+          { id: payment.external_reference, estado: 'pendiente' },
+          { $set: { estado: 'pagado', pago_id: String(payment.id) } }
+        )
+      }
+    } catch (err) {
+      console.error('Webhook MercadoPago:', err.message)
+    }
+  })()
+})
 
 module.exports = router

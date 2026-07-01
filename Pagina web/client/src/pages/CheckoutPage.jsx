@@ -1,41 +1,44 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { initMercadoPago, Payment } from '@mercadopago/sdk-react'
 import { useCart } from '../context/CartContext'
 import { pedidosAPI, pagosAPI } from '../services/api'
 
 const METODOS_PAGO = [
-  { id: 'tarjeta', label: 'Tarjeta de crédito / débito (Culqi)' },
-  { id: 'yape', label: 'Yape' },
+  { id: 'online', label: 'Tarjeta / Yape (Mercado Pago)' },
   { id: 'whatsapp', label: 'Coordinar por WhatsApp' },
 ]
 
-const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY || ''
-
 export default function CheckoutPage() {
   const { items, total, clearCart } = useCart()
-  const navigate = useNavigate()
 
   const [form, setForm] = useState({
     nombre: '', apellido: '', email: '', telefono: '',
-    direccion: '', distrito: '', ciudad: 'Lima', metodoPago: 'tarjeta',
+    direccion: '', distrito: '', ciudad: 'Lima', metodoPago: 'online',
   })
   const [errors, setErrors] = useState({})
   const [submitted, setSubmitted] = useState(false)
+  const [pendiente, setPendiente] = useState(false)
   const [pedidoId, setPedidoId] = useState(null)
   const [procesando, setProcesando] = useState(false)
   const [payError, setPayError] = useState('')
+  const [mpListo, setMpListo] = useState(false)
+  const [mpNoConfigurado, setMpNoConfigurado] = useState(false)
+  const [mostrarBrick, setMostrarBrick] = useState(false)
+  // El total se congela al pasar al paso de pago (clearCart lo pondría en 0)
+  const [totalPago, setTotalPago] = useState(0)
 
-  // Cargar Culqi JS SDK
+  // Inicializar MercadoPago con la public key servida por el backend
   useEffect(() => {
-    if (!document.getElementById('culqi-js')) {
-      const script = document.createElement('script')
-      script.id = 'culqi-js'
-      script.src = 'https://checkout.culqi.com/js/v4'
-      document.head.appendChild(script)
-    }
+    pagosAPI.config()
+      .then(({ publicKey }) => {
+        initMercadoPago(publicKey, { locale: 'es-PE' })
+        setMpListo(true)
+      })
+      .catch(() => setMpNoConfigurado(true))
   }, [])
 
-  if (items.length === 0 && !submitted) {
+  if (items.length === 0 && !submitted && !pendiente) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-24 text-center">
         <h2 className="section-title mb-4">Tu carrito está vacío</h2>
@@ -92,52 +95,44 @@ export default function CheckoutPage() {
         return
       }
 
-      // Culqi / Yape
-      if (!CULQI_PUBLIC_KEY || CULQI_PUBLIC_KEY.includes('xxxxx')) {
-        setPayError('El pago online no está configurado aún. Por favor elige "Coordinar por WhatsApp" o contacta al vendedor.')
+      // Pago online con MercadoPago
+      if (mpNoConfigurado) {
+        setPayError('El pago online no está disponible aún. Por favor elige "Coordinar por WhatsApp".')
+        setProcesando(false)
+        return
+      }
+      if (!mpListo) {
+        setPayError('El sistema de pago está cargando. Intenta de nuevo en unos segundos.')
         setProcesando(false)
         return
       }
 
-      const pid = await crearPedidoEnDB(form.metodoPago)
+      const pid = await crearPedidoEnDB('online')
       setPedidoId(pid)
-
-      // Abrir Culqi Checkout
-      if (typeof window.Culqi !== 'undefined') {
-        window.Culqi.publicKey = CULQI_PUBLIC_KEY
-        window.Culqi.settings({
-          title: 'RIVT',
-          currency: 'PEN',
-          description: `Pedido RIVT #${pid}`,
-          amount: Math.round(total * 100),
-          order: pid,
-        })
-        window.culqi = async () => {
-          if (window.Culqi.token) {
-            try {
-              if (form.metodoPago === 'yape') {
-                await pagosAPI.yape({ yape_token: window.Culqi.token.id, pedido_id: pid, monto: total })
-              } else {
-                await pagosAPI.culqi({ token: window.Culqi.token.id, pedido_id: pid, email: form.email, monto: total })
-              }
-              clearCart()
-              setSubmitted(true)
-            } catch (err) {
-              setPayError(err.message)
-            }
-          } else if (window.Culqi.order) {
-            setPayError('Hubo un error al procesar el pago. Intenta de nuevo.')
-          }
-          setProcesando(false)
-        }
-        window.Culqi.open()
-      } else {
-        setPayError('El sistema de pago no cargó correctamente. Actualiza la página e intenta de nuevo.')
-        setProcesando(false)
-      }
+      setTotalPago(total)
+      setMostrarBrick(true)
+      setProcesando(false)
     } catch (err) {
       setPayError(err.message || 'Error al procesar el pedido')
       setProcesando(false)
+    }
+  }
+
+  const handlePagar = async ({ formData }) => {
+    // onSubmit del Payment Brick — devuelve promesa; el brick muestra su spinner
+    try {
+      const r = await pagosAPI.procesar({ pedido_id: pedidoId, formData })
+      if (r.status === 'approved') {
+        clearCart()
+        setSubmitted(true)
+      } else if (r.status === 'in_process' || r.status === 'pending') {
+        clearCart()
+        setPendiente(true)
+      } else {
+        setPayError('Pago rechazado. Verifica los datos de tu tarjeta e intenta de nuevo.')
+      }
+    } catch (err) {
+      setPayError(err.message || 'Error al procesar el pago')
     }
   }
 
@@ -154,6 +149,61 @@ export default function CheckoutPage() {
           Gracias <strong>{form.nombre}</strong>. Nos contactaremos al <strong>{form.telefono}</strong> para coordinar la entrega.
         </p>
         <Link to="/" className="btn-primary inline-block">Seguir comprando</Link>
+      </div>
+    )
+  }
+
+  if (pendiente) {
+    return (
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-24 text-center animate-fadeIn">
+        <div className="w-16 h-16 border-2 border-ink rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg className="w-8 h-8 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="section-title mb-4">Pago en proceso</h2>
+        <p className="text-ink-light text-sm leading-relaxed mb-8">
+          Tu pago está siendo verificado. Te avisaremos al <strong>{form.telefono}</strong> apenas se confirme.
+        </p>
+        <Link to="/" className="btn-primary inline-block">Volver a la tienda</Link>
+      </div>
+    )
+  }
+
+  // Paso 2: formulario de pago embebido (Payment Brick)
+  if (mostrarBrick && pedidoId) {
+    return (
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-12 md:py-20 animate-fadeIn">
+        <h1 className="section-title mb-2">Pagar pedido</h1>
+        <p className="text-ink-light text-sm mb-8">
+          Total a pagar: <strong>S/ {totalPago.toFixed(2)}</strong>
+        </p>
+
+        <Payment
+          initialization={{
+            amount: Number(totalPago.toFixed(2)),
+            payer: { email: form.email },
+          }}
+          customization={{
+            paymentMethods: {
+              creditCard: 'all',
+              debitCard: 'all',
+            },
+          }}
+          onSubmit={handlePagar}
+          onError={() => setPayError('Error en el formulario de pago. Actualiza la página e intenta de nuevo.')}
+        />
+
+        {payError && (
+          <p className="text-red-600 text-xs bg-red-50 border border-red-200 px-3 py-2 mt-4">{payError}</p>
+        )}
+
+        <button
+          onClick={() => { setMostrarBrick(false); setPayError('') }}
+          className="text-xs underline underline-offset-2 text-ink-muted hover:text-ink mt-6"
+        >
+          ← Volver a los datos de envío
+        </button>
       </div>
     )
   }
@@ -213,9 +263,9 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            {(form.metodoPago === 'tarjeta' || form.metodoPago === 'yape') && (
+            {form.metodoPago === 'online' && mpNoConfigurado && (
               <p className="mt-3 text-xs text-ink-muted border border-cream-darker p-3 bg-cream-dark">
-                Se abrirá el formulario de pago seguro de Culqi. Configura tu <code>VITE_CULQI_PUBLIC_KEY</code> en <code>client/.env</code> para activar el pago real.
+                El pago online aún no está disponible. Elige "Coordinar por WhatsApp" y te atenderemos al instante.
               </p>
             )}
           </div>
@@ -225,7 +275,7 @@ export default function CheckoutPage() {
           )}
 
           <button type="submit" disabled={procesando} className="btn-primary w-full text-center disabled:opacity-60">
-            {procesando ? 'Procesando...' : form.metodoPago === 'whatsapp' ? 'Enviar pedido por WhatsApp' : 'Pagar ahora'}
+            {procesando ? 'Procesando...' : form.metodoPago === 'whatsapp' ? 'Enviar pedido por WhatsApp' : 'Continuar al pago'}
           </button>
         </form>
 

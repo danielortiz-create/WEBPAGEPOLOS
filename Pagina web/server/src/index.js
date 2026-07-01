@@ -4,6 +4,9 @@ const express = require('express')
 const cors = require('cors')
 const path = require('path')
 
+const { connectDB } = require('./db/connect')
+const { seed } = require('./db/seed')
+
 const app = express()
 const PORT = process.env.PORT || 4000
 
@@ -14,7 +17,7 @@ app.use(cors({
 }))
 app.use(express.json())
 
-// Servir imágenes estáticas subidas
+// Servir imágenes estáticas subidas (legacy — las nuevas van a Cloudinary)
 app.use('/img', express.static(
   path.resolve(__dirname, '../../client/public/img')
 ))
@@ -31,6 +34,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })
 })
 
+// ── Error handler global (rutas API async) ────────────────────
+app.use((err, req, res, next) => {
+  console.error('Error:', err.message)
+  res.status(500).json({ error: 'Error interno del servidor' })
+})
+
 // ── Servir frontend (producción) ──────────────────────────────
 const clientBuild = path.resolve(__dirname, '../../client/dist')
 app.use(express.static(clientBuild))
@@ -39,7 +48,16 @@ app.get('*', (req, res) => {
 })
 
 // ── Arrancar ──────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🚀 RIVT API corriendo en http://localhost:${PORT}`)
-  console.log(`   Health: http://localhost:${PORT}/api/health\n`)
+async function main() {
+  await connectDB()
+  await seed()
+  app.listen(PORT, () => {
+    console.log(`\n🚀 RIVT API corriendo en http://localhost:${PORT}`)
+    console.log(`   Health: http://localhost:${PORT}/api/health\n`)
+  })
+}
+
+main().catch((err) => {
+  console.error('✖ Error al iniciar el servidor:', err.message)
+  process.exit(1)
 })
