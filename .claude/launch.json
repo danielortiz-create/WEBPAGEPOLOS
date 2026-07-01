@@ -7,6 +7,13 @@
       "runtimeArgs": ["/c", "C:\\Users\\danie\\Documents\\21_Polos\\start-dev.bat"],
       "port": 3000,
       "autoPort": false
+    },
+    {
+      "name": "rivt-client",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "C:\\Users\\danie\\Documents\\21_Polos\\start-client.bat"],
+      "port": 3000,
+      "autoPort": false
     }
   ]
 }
