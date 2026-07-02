@@ -10,6 +10,10 @@ const { seed } = require('./db/seed')
 const app = express()
 const PORT = process.env.PORT || 4000
 
+// Railway corre detrás de un proxy: sin esto req.ip sería la IP del
+// proxy y todos los visitantes compartirían el rate limit de /api/build
+app.set('trust proxy', 1)
+
 // ── Middleware ────────────────────────────────────────────────
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5173'],
@@ -28,6 +32,7 @@ app.use('/api/productos', require('./routes/products'))
 app.use('/api/pedidos',   require('./routes/orders'))
 app.use('/api/upload',    require('./routes/upload'))
 app.use('/api/pagos',     require('./routes/payments'))
+app.use('/api/build',     require('./routes/build'))
 
 // Health check
 app.get('/api/health', (req, res) => {

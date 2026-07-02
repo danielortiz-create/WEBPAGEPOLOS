@@ -3,11 +3,17 @@ const mongoose = require('mongoose')
 // _id: false — sin esto Mongoose inyecta un _id en cada item
 // y cambia el JSON que ve el panel admin
 const itemSchema = new mongoose.Schema({
-  id:       Number,
+  id:       mongoose.Schema.Types.Mixed, // Number (catálogo) o 'custom-<uuid>' (Build)
   nombre:   String,
   talla:    String,
   cantidad: Number,
   precio:   Number,
+  // Campos de polos personalizados (sección Build)
+  personalizado:  { type: Boolean, default: false },
+  prompt:         String, // idea original del cliente
+  imagen:         String, // URL Cloudinary del diseño generado
+  color_polo:     String, // 'negro' | 'blanco'
+  tamano_diseno:  String, // 'chico' | 'mediano' | 'grande'
 }, { _id: false })
 
 const pedidoSchema = new mongoose.Schema({

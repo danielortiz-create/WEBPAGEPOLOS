@@ -135,6 +135,24 @@ titular controla el resultado: `APRO` aprueba, `OTHE` rechaza, `CONT` queda pend
 
 ---
 
+## Build — Polos personalizados con IA
+
+En `/build` el cliente describe su idea, la IA genera el diseño sobre un polo
+negro o blanco, y lo agrega al carrito. Precios: chico S/ 80, mediano S/ 100,
+grande S/ 120. Límite: 3 diseños por visitante al día.
+
+Requiere `OPENAI_API_KEY` en `server/.env` (sin ella, la página muestra
+"próximamente"):
+1. Cuenta en [platform.openai.com](https://platform.openai.com)
+2. Si lo pide, verificar organización (Settings → Organization → Verify)
+3. Cargar crédito: Billing → Add credits ($5 ≈ 450 diseños)
+4. API keys → Create new secret key
+
+El pedido llega al panel admin con la imagen del diseño (clic para verla en
+grande y mandarla a estampar) y la idea original del cliente.
+
+---
+
 ## Agregar productos desde el código (alternativo)
 
 Edita `client/src/data/products.js` — se usa como fallback si el servidor no está disponible.

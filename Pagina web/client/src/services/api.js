@@ -77,3 +77,9 @@ export const pagosAPI = {
   config: () => request('GET', '/pagos/mp/config'),
   procesar: (data) => request('POST', '/pagos/mp/procesar', data),
 }
+
+// ── Build (polos personalizados con IA) ───────────────────────
+export const buildAPI = {
+  estado: () => request('GET', '/build/estado'),
+  generar: (data) => request('POST', '/build/generar', data), // {prompt, color, tamano}
+}

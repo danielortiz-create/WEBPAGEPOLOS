@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid')
 const Pedido = require('../models/Pedido')
 const { requireAuth } = require('../middleware/auth')
 const asyncHandler = require('../middleware/asyncHandler')
+const { PRECIOS_BUILD } = require('./build')
 
 const router = express.Router()
 const ESTADOS_VALIDOS = ['pendiente', 'pagado', 'enviado', 'cancelado']
@@ -15,11 +16,20 @@ router.post('/', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Faltan datos del pedido' })
   }
 
+  // El precio de los polos personalizados se fija en el server según su
+  // tamaño — el valor que venga del cliente no cuenta
+  for (const it of items) {
+    if (it.personalizado && PRECIOS_BUILD[it.tamano_diseno]) {
+      it.precio = PRECIOS_BUILD[it.tamano_diseno]
+    }
+  }
+  const totalCalculado = items.reduce((acc, i) => acc + Number(i.precio) * Number(i.cantidad || 1), 0)
+
   const pedido = await Pedido.create({
     id: uuidv4(),
     cliente,
     items,
-    total: Number(total),
+    total: totalCalculado,
     estado: 'pendiente',
     metodo_pago: metodo_pago || 'whatsapp',
     pago_id: pago_id || null,

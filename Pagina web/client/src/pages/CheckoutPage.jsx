@@ -67,7 +67,16 @@ export default function CheckoutPage() {
   const crearPedidoEnDB = async (metodoPago) => {
     const pedido = await pedidosAPI.crear({
       cliente: { nombre: form.nombre, apellido: form.apellido, email: form.email, telefono: form.telefono },
-      items: items.map((i) => ({ id: i.id, nombre: i.nombre, talla: i.talla, cantidad: i.cantidad, precio: i.precio })),
+      items: items.map((i) => ({
+        id: i.id, nombre: i.nombre, talla: i.talla, cantidad: i.cantidad, precio: i.precio,
+        ...(i.personalizado && {
+          personalizado: true,
+          prompt: i.prompt,
+          imagen: i.imagen,
+          color_polo: i.color_polo,
+          tamano_diseno: i.tamano_diseno,
+        }),
+      })),
       total,
       metodo_pago: metodoPago,
       direccion: { direccion: form.direccion, distrito: form.distrito, ciudad: form.ciudad },
@@ -87,7 +96,10 @@ export default function CheckoutPage() {
       if (form.metodoPago === 'whatsapp') {
         await crearPedidoEnDB('whatsapp')
         const resumen =
-          items.map((i) => `• ${i.nombre} (Talla ${i.talla}) x${i.cantidad}`).join('\n') +
+          items.map((i) =>
+            `• ${i.nombre} (Talla ${i.talla}) x${i.cantidad}` +
+            (i.personalizado ? `\n  Diseño: ${i.imagen}\n  Idea: "${i.prompt}"` : '')
+          ).join('\n') +
           `\n\nTotal: S/ ${total.toFixed(2)}\n\nDatos de envío:\n${form.nombre} ${form.apellido}\n${form.direccion}, ${form.distrito}, ${form.ciudad}\nTel: ${form.telefono}`
         window.open(`https://wa.me/51912304036?text=${encodeURIComponent(resumen)}`, '_blank')
         clearCart()

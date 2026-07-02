@@ -23,23 +23,41 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-6">
             {items.map((item) => (
               <div key={item.key} className="flex gap-5 pb-6 border-b border-cream-darker animate-fadeIn">
-                <Link to={`/producto/${item.id}`} className="flex-shrink-0">
+                {item.personalizado ? (
                   <img
                     src={item.imagen}
                     alt={item.nombre}
                     loading="lazy"
-                    className="w-24 h-28 md:w-32 md:h-36 object-cover bg-cream-dark"
+                    className="w-24 h-28 md:w-32 md:h-36 object-cover bg-cream-dark flex-shrink-0"
                   />
-                </Link>
+                ) : (
+                  <Link to={`/producto/${item.id}`} className="flex-shrink-0">
+                    <img
+                      src={item.imagen}
+                      alt={item.nombre}
+                      loading="lazy"
+                      className="w-24 h-28 md:w-32 md:h-36 object-cover bg-cream-dark"
+                    />
+                  </Link>
+                )}
 
                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                   <div>
-                    <Link to={`/producto/${item.id}`}>
-                      <h3 className="font-sans text-sm md:text-base font-medium hover:text-ink-light transition-colors">
+                    {item.personalizado ? (
+                      <h3 className="font-sans text-sm md:text-base font-medium">
                         {item.nombre}
                       </h3>
-                    </Link>
+                    ) : (
+                      <Link to={`/producto/${item.id}`}>
+                        <h3 className="font-sans text-sm md:text-base font-medium hover:text-ink-light transition-colors">
+                          {item.nombre}
+                        </h3>
+                      </Link>
+                    )}
                     <p className="label-tag text-ink-muted mt-1">Talla: {item.talla}</p>
+                    {item.personalizado && (
+                      <p className="label-tag text-ink-muted mt-1">Diseño personalizado</p>
+                    )}
                     <p className="font-sans text-sm font-semibold text-ink mt-2">
                       S/ {item.precio.toFixed(2)}
                     </p>
@@ -112,7 +130,10 @@ export default function CartPage() {
               <a
                 href={`https://wa.me/51912304036?text=${encodeURIComponent(
                   'Hola, quiero realizar este pedido:\n' +
-                  items.map((i) => `• ${i.nombre} (Talla ${i.talla}) x${i.cantidad} — S/ ${(i.precio * i.cantidad).toFixed(2)}`).join('\n') +
+                  items.map((i) =>
+                    `• ${i.nombre} (Talla ${i.talla}) x${i.cantidad} — S/ ${(i.precio * i.cantidad).toFixed(2)}` +
+                    (i.personalizado ? `\n  Diseño: ${i.imagen}\n  Idea: "${i.prompt}"` : '')
+                  ).join('\n') +
                   `\n\nTotal: S/ ${total.toFixed(2)}`
                 )}`}
                 target="_blank"

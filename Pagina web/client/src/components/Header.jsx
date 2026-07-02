@@ -62,6 +62,12 @@ export default function Header() {
                 Colección
               </Link>
               <Link
+                to="/build"
+                className="label-tag hover:text-ink transition-colors"
+              >
+                Build
+              </Link>
+              <Link
                 to="/#por-que-rivt"
                 className="label-tag hover:text-ink transition-colors"
               >
@@ -127,6 +133,9 @@ export default function Header() {
             <nav className="flex flex-col px-6 py-4 gap-4">
               <Link to="/" onClick={() => setMenuOpen(false)} className="label-tag py-2 border-b border-cream-darker">
                 Colección
+              </Link>
+              <Link to="/build" onClick={() => setMenuOpen(false)} className="label-tag py-2 border-b border-cream-darker">
+                Build
               </Link>
               <Link to="/#por-que-rivt" onClick={() => setMenuOpen(false)} className="label-tag py-2">
                 Nosotros

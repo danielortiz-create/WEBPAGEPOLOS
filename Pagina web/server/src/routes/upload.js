@@ -1,17 +1,10 @@
 const express = require('express')
 const multer = require('multer')
 const path = require('path')
-const { v2: cloudinary } = require('cloudinary')
 const { requireAuth } = require('../middleware/auth')
+const { cloudinaryConfigurado, subirACloudinary } = require('../lib/cloudinary')
 
 const router = express.Router()
-
-// Lee CLOUDINARY_URL del entorno (cloudinary://KEY:SECRET@CLOUD_NAME)
-cloudinary.config()
-
-function cloudinaryConfigurado() {
-  return Boolean(process.env.CLOUDINARY_URL || process.env.CLOUDINARY_API_SECRET)
-}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -26,16 +19,6 @@ const upload = multer({
     }
   },
 })
-
-function subirACloudinary(buffer) {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: 'rivt-productos', resource_type: 'image' },
-      (err, result) => (err ? reject(err) : resolve(result))
-    )
-    stream.end(buffer)
-  })
-}
 
 // POST /api/upload — subir imagen (admin)
 router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {

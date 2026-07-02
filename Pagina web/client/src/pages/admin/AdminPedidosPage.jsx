@@ -155,11 +155,26 @@ export default function AdminPedidosPage() {
               </div>
               <div>
                 <p className="label-tag text-ink-muted mb-2">Productos</p>
-                <ul className="space-y-1">
+                <ul className="space-y-2">
                   {detalle.items?.map((item, i) => (
-                    <li key={i} className="flex justify-between">
-                      <span>{item.nombre} · Talla {item.talla} x{item.cantidad}</span>
-                      <span className="font-medium">S/ {(item.precio * item.cantidad).toFixed(2)}</span>
+                    <li key={i} className="border-b border-cream-darker/60 pb-2 last:border-0 last:pb-0">
+                      <div className="flex justify-between">
+                        <span>{item.nombre} · Talla {item.talla} x{item.cantidad}</span>
+                        <span className="font-medium">S/ {(item.precio * item.cantidad).toFixed(2)}</span>
+                      </div>
+                      {item.personalizado && (
+                        <div className="flex gap-3 mt-2 bg-cream-dark p-2">
+                          <a href={item.imagen} target="_blank" rel="noopener noreferrer" className="flex-shrink-0" title="Ver diseño completo">
+                            <img src={item.imagen} alt="Diseño personalizado" className="w-16 h-16 object-cover" />
+                          </a>
+                          <div className="text-xs text-ink-muted min-w-0">
+                            <p className="font-medium text-ink">
+                              Personalizado · polo {item.color_polo} · diseño {item.tamano_diseno}
+                            </p>
+                            <p className="mt-1 italic break-words">"{item.prompt}"</p>
+                          </div>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

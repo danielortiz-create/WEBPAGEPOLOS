@@ -22,9 +22,16 @@ export function CartProvider({ children }) {
           id: product.id,
           nombre: product.nombre,
           precio: product.precio,
-          imagen: product.imagenPrincipal,
+          imagen: product.imagenPrincipal || product.imagen,
           talla,
           cantidad,
+          // Campos de polos personalizados (sección Build)
+          ...(product.personalizado && {
+            personalizado: true,
+            prompt: product.prompt,
+            color_polo: product.color_polo,
+            tamano_diseno: product.tamano_diseno,
+          }),
         },
       ]
     })

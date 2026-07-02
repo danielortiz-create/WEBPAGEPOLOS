@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
+import BuildPage from './pages/BuildPage'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
@@ -30,6 +31,7 @@ function StoreLayout() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/producto/:id" element={<ProductDetailPage />} />
+          <Route path="/build" element={<BuildPage />} />
           <Route path="/carrito" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
         </Routes>
